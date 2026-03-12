@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AgriSmart – Smart Crop Advisory</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --soil: #3d1f0a;
+    --leaf: #2d6a4f;
+    --leaf-light: #40916c;
+    --leaf-pale: #d8f3dc;
+    --sun: #f4a261;
+    --gold: #e9c46a;
+    --sky: #90e0ef;
+    --bg: #f5ede0;
+    --card: #fffdf8;
+    --dark: #1a0f06;
+    --muted: #7a6652;
+    --accent: #e76f51;
+    --border: #e5d5be;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--dark);
+    min-height: 100vh;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #f0e4d0; }
+  ::-webkit-scrollbar-thumb { background: var(--leaf-light); border-radius: 4px; }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, var(--soil) 0%, var(--leaf) 100%);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.22);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { font-size: 30px; }
+  .logo-name { color: var(--gold); font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; letter-spacing: 1px; }
+  .logo-sub { color: #b7e4c7; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; }
+  .farmer-info { text-align: right; color: #c8e6c9; font-size: 12px; line-height: 1.6; display: none; }
+  .farmer-info.show { display: block; }
+
+  /* ── Nav ── */
+  nav {
+    background: var(--card);
+    border-bottom: 2px solid var(--border);
+    display: flex; overflow-x: auto;
+    position: sticky; top: 58px; z-index: 99;
+  }
+  nav::-webkit-scrollbar { height: 0; }
+  .nav-btn {
+    padding: 13px 18px; border: none; background: transparent;
+    border-bottom: 3px solid transparent;
+    color: var(--muted); font-family: 'Source Serif 4', serif;
+    font-size: 13px; cursor: pointer; white-space: nowrap;
+    transition: all 0.2s; font-weight: 400;
+  }
+  .nav-btn:hover { color: var(--leaf); }
+  .nav-btn.active { color: var(--leaf); font-weight: 700; border-bottom-color: var(--leaf); }
+
+  /* ── Layout ── */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 22px 16px 40px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 22px;
+    box-shadow: 0 2px 18px rgba(61,31,10,0.07);
+  }
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; color: var(--soil); margin-bottom: 14px;
+  }
+
+  /* ── Form ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+  input, select {
+    padding: 10px 13px; border-radius: 9px;
+    border: 1.5px solid var(--border); background: #fffdf8;
+    font-family: 'Source Serif 4', serif; font-size: 14px; color: var(--dark);
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--leaf-light); }
+  input::placeholder { color: #bba98a; }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    width: 100%; padding: 14px; margin-top: 16px;
+    background: linear-gradient(135deg, var(--leaf), var(--leaf-light));
+    color: #fff; border: none; border-radius: 11px;
+    font-size: 15px; font-weight: 700; font-family: 'Playfair Display', serif;
+    cursor: pointer; letter-spacing: 0.5px;
+    box-shadow: 0 4px 14px rgba(45,106,79,0.38);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(45,106,79,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+
+  /* ── Error ── */
+  .error-msg { color: var(--accent); font-size: 13px; margin-top: 6px; }
+
+  /* ── Stats row ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 10px; text-align: center; box-shadow: 0 2px 10px rgba(61,31,10,0.06); }
+  .stat-icon { font-size: 26px; margin-bottom: 4px; }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; color: var(--leaf); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Farmer profile grid ── */
+  .profile-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+  .profile-item { background: #fff; border-radius: 10px; padding: 10px 12px; }
+  .profile-item .pi-icon { font-size: 20px; }
+  .profile-item .pi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; }
+  .profile-item .pi-value { font-size: 13px; font-weight: 600; color: var(--dark); }
+
+  /* ── Crop cards ── */
+  .crop-card { border-left: 5px solid var(--leaf); transition: transform 0.15s; }
+  .crop-card:hover { transform: translateY(-2px); }
+  .crop-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .crop-emoji { font-size: 30px; }
+  .crop-name { font-family: 'Playfair Display', serif; font-size: 19px; color: var(--soil); }
+  .crop-badge { padding: 2px 10px; border-radius: 20px; font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #fff; }
+  .crop-reason { font-size: 13px; color: #4a3728; line-height: 1.6; margin-bottom: 10px; font-style: italic; }
+  .crop-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .crop-stat { background: #f5ede0; border-radius: 9px; padding: 9px 12px; }
+  .crop-stat .cs-label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+  .crop-stat .cs-value { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .crop-tips { margin-top: 8px; }
+  .crop-tips .tips-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
+  .tip-item { font-size: 12px; color: var(--dark); padding: 3px 0; }
+
+  /* ── Advisory banners ── */
+  .banner { border-radius: 12px; padding: 12px 16px; font-size: 13px; line-height: 1.6; }
+  .banner-sky { background: #e0f4ff; border: 1px solid var(--sky); }
+  .banner-soil { background: #f5ede0; border: 1px solid #c8a97a; }
+  .banner-warn { background: #fff8e1; border: 1px solid #ffc107; }
+  .banner-success { background: var(--leaf-pale); border: 1px solid #95d5b2; }
+
+  /* ── Weather ── */
+  .weather-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
+  .weather-day { background: var(--card); border: 1px solid var(--border); border-radius: 13px; padding: 12px 6px; text-align: center; }
+  .weather-day.today { border-top: 3px solid var(--sun); }
+  .wd-label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+  .wd-icon { font-size: 26px; margin: 5px 0; }
+  .wd-temp { font-weight: 700; font-size: 16px; color: var(--soil); }
+  .wd-rain { font-size: 11px; color: #4cc9f0; margin-top: 2px; }
+
+  .advisory-list { display: flex; flex-direction: column; }
+  .advisory-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0e8d8; }
+  .advisory-item:last-child { border-bottom: none; }
+  .advisory-icon { font-size: 20px; flex-shrink: 0; }
+  .advisory-text { font-size: 13px; color: var(--dark); line-height: 1.5; }
+
+  .mini-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+  .mini-stat { background: var(--card); border: 1px solid var(--border); border-radius: 13px; padding: 14px 10px; text-align: center; }
+  .mini-stat .ms-icon { font-size: 22px; }
+  .mini-stat .ms-val { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--soil); }
+  .mini-stat .ms-label { font-size: 11px; color: var(--muted); }
+
+  /* ── Market ── */
+  .market-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: var(--card); border-radius: 13px; border: 1px solid var(--border); transition: box-shadow 0.15s; }
+  .market-row:hover { box-shadow: 0 4px 16px rgba(61,31,10,0.1); }
+  .mr-icon { font-size: 28px; width: 36px; text-align: center; flex-shrink: 0; }
+  .mr-info { flex: 1; }
+  .mr-crop { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--soil); }
+  .mr-loc { font-size: 11px; color: var(--muted); }
+  .mr-price { text-align: right; flex-shrink: 0; }
+  .mr-amount { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--dark); }
+  .mr-unit { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .mr-change { font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .up { color: var(--leaf-light); }
+  .down { color: var(--accent); }
+  .sparkline-wrap { width: 80px; flex-shrink: 0; }
+  .sparkline-wrap svg { display: block; }
+  .sparkline-wrap .sp-label { font-size: 9px; color: var(--muted); text-align: center; font-family: 'JetBrains Mono', monospace; }
+
+  /* ── Profit ── */
+  .profit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .profit-stat { background: #f5ede0; border-radius: 10px; padding: 12px 14px; }
+  .profit-stat .ps-label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+  .profit-stat .ps-val { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-top: 3px; }
+  .profit-summary { background: linear-gradient(135deg, #d8f3dc44, #e9c46a33); border-radius: 10px; padding: 11px 16px; text-align: center; font-size: 14px; color: var(--dark); }
+  .profit-summary strong { font-size: 20px; }
+
+  .cost-breakdown { display: flex; flex-direction: column; gap: 9px; }
+  .cb-item { display: flex; align-items: center; gap: 10px; }
+  .cb-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .cb-name { flex: 1; font-size: 13px; color: var(--dark); }
+  .cb-pct { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; width: 36px; text-align: right; }
+  .cb-bar-bg { width: 90px; height: 6px; background: #f0e8d8; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .cb-bar { height: 100%; border-radius: 3px; }
+
+  /* ── Chat ── */
+  .chat-header { padding: 10px 16px; background: linear-gradient(90deg, var(--leaf), var(--leaf-light)); color: #fff; font-size: 13px; border-radius: 14px 14px 0 0; }
+  .chat-body { height: 370px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .chat-bubble { max-width: 82%; padding: 10px 15px; border-radius: 18px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+  .bubble-bot { background: #f5ede0; color: var(--dark); border-radius: 18px 18px 18px 4px; align-self: flex-start; }
+  .bubble-user { background: linear-gradient(135deg, var(--leaf), var(--leaf-light)); color: #fff; border-radius: 18px 18px 4px 18px; align-self: flex-end; }
+  .chat-footer { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .chat-input { flex: 1; padding: 10px 13px; border-radius: 9px; border: 1.5px solid var(--border); background: #fffdf8; font-family: 'Source Serif 4', serif; font-size: 13px; outline: none; }
+  .chat-input:focus { border-color: var(--leaf-light); }
+  .chat-send { padding: 10px 16px; background: var(--leaf); color: #fff; border: none; border-radius: 9px; cursor: pointer; font-size: 17px; transition: background 0.2s; }
+  .chat-send:hover { background: var(--leaf-light); }
+  .chat-send:disabled { background: #aaa; cursor: not-allowed; }
+  .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .quick-btn { padding: 6px 13px; background: #fff; border: 1px solid #c8e6c944; border-radius: 20px; font-size: 11px; color: var(--leaf); cursor: pointer; font-family: 'Source Serif 4', serif; transition: background 0.15s; }
+  .quick-btn:hover { background: var(--leaf-pale); }
+
+  /* ── Loading dots ── */
+  .typing-dots span { display: inline-block; animation: blink 1.2s infinite; font-size: 18px; }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:1} }
+
+  /* ── Loader ── */
+  .ai-loading { text-align: center; padding: 30px; color: var(--leaf); font-family: 'Playfair Display', serif; font-size: 16px; }
+  .spinner { width: 36px; height: 36px; border: 3px solid #d8f3dc; border-top-color: var(--leaf); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Page title ── */
+  .page-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--soil); }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--leaf); color: #fff; padding: 12px 24px; border-radius: 30px;
+    font-family: 'Source Serif 4', serif; font-size: 14px;
+    box-shadow: 0 6px 20px rgba(45,106,79,0.4); z-index: 999;
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+    opacity: 0; pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ── Saved Dashboard ── */
+  .saved-empty { text-align:center; padding: 40px 20px; color: var(--muted); }
+  .saved-empty .se-icon { font-size: 52px; margin-bottom: 10px; }
+  .saved-empty p { font-size: 14px; }
+
+  .saved-card {
+    background: var(--card); border-radius: 16px; border: 1px solid var(--border);
+    box-shadow: 0 2px 14px rgba(61,31,10,0.07); overflow: hidden; margin-bottom: 16px;
+    transition: box-shadow 0.2s;
+  }
+  .saved-card:hover { box-shadow: 0 4px 22px rgba(61,31,10,0.13); }
+  .saved-card-header {
+    background: linear-gradient(135deg, var(--soil), var(--leaf));
+    padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .saved-card-header .sch-name { color: var(--gold); font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; }
+  .saved-card-header .sch-meta { color: #b7e4c7; font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .saved-card-header .sch-date { color: #a5c9b7; font-size: 10px; font-family: 'JetBrains Mono', monospace; text-align: right; }
+  .saved-card-body { padding: 16px 18px; }
+  .saved-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .saved-tag { padding: 4px 11px; border-radius: 20px; font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+  .tag-soil { background: #f5e6d0; color: #7a4a1e; }
+  .tag-season { background: var(--leaf-pale); color: var(--leaf); }
+  .tag-irr { background: #e0f4ff; color: #1a6fa0; }
+  .tag-land { background: #fff3cd; color: #7a5c00; }
+  .saved-crops-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .saved-crop-chip {
+    background: #f5ede0; border-radius: 10px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px; flex: 1; min-width: 100px;
+    border: 1px solid var(--border);
+  }
+  .scc-emoji { font-size: 20px; }
+  .scc-name { font-size: 12px; font-weight: 600; color: var(--soil); }
+  .scc-profit { font-size: 10px; color: var(--leaf); font-family: 'JetBrains Mono', monospace; }
+  .saved-card-actions { display: flex; gap: 8px; padding: 0 18px 16px; }
+  .btn-view { flex:1; padding: 9px; background: var(--leaf); color: #fff; border: none; border-radius: 8px; font-family: serif; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+  .btn-view:hover { background: var(--leaf-light); }
+  .btn-del { padding: 9px 14px; background: #fff; border: 1.5px solid #f0d0c8; color: var(--accent); border-radius: 8px; font-family: serif; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .btn-del:hover { background: #fdf0ec; }
+
+  /* ── Saved detail modal ── */
+  #modalOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(26,15,6,0.55);
+    z-index: 500; align-items: center; justify-content: center; padding: 16px;
+  }
+  #modalOverlay.open { display: flex; }
+  #modalBox {
+    background: var(--card); border-radius: 18px; max-width: 680px; width: 100%;
+    max-height: 88vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    animation: fadeIn 0.25s ease;
+  }
+  .modal-header {
+    background: linear-gradient(135deg, var(--soil), var(--leaf));
+    padding: 18px 22px; border-radius: 18px 18px 0 0;
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .modal-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 0 4px; }
+  .modal-body { padding: 20px 22px; }
+
+  /* ── Footer ── */
+  footer { text-align: center; padding: 20px 16px 30px; color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .form-grid, .stats-grid, .profile-grid, .mini-stats { grid-template-columns: 1fr 1fr; }
+    .weather-grid { grid-template-columns: repeat(3,1fr); }
+    .profit-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 360px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <span class="logo-icon">🌾</span>
+    <div>
+      <div class="logo-name">AgriSmart</div>
+      <div class="logo-sub">Smart Crop Advisory</div>
+    </div>
+  </div>
+  <div class="farmer-info" id="farmerInfo" style="display:none;"></div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <button class="nav-btn active" onclick="showTab('home')">🏠 Register</button>
+  <button class="nav-btn" onclick="showTab('saved')">💾 Saved <span id="savedBadge" style="display:none;background:var(--accent);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:3px;font-family:monospace;"></span></button>
+  <button class="nav-btn" onclick="showTab('crops')">🌱 Crops</button>
+  <button class="nav-btn" onclick="showTab('weather')">🌦️ Weather</button>
+  <button class="nav-btn" onclick="showTab('market')">💰 Market</button>
+  <button class="nav-btn" onclick="showTab('profit')">📊 Profit</button>
+  <button class="nav-btn" onclick="showTab('chat')">🤖 Advisor</button>
+</nav>
+
+<!-- ══════════ HOME ══════════ -->
+<div id="page-home" class="page active">
+  <div class="container">
+    <!-- Registration Card — always fresh -->
+    <div class="card" id="regCard" style="border-top: 4px solid var(--leaf);">
+      <div class="card-title">🧑‍🌾 Farmer Registration</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px;">Enter farm details to get smart crop recommendations. Each submission is saved to your dashboard.</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="f_name" placeholder="e.g. Ramesh Kumar"/>
+        </div>
+        <div class="form-group">
+          <label>Location / District</label>
+          <input type="text" id="f_location" placeholder="e.g. Warangal, Telangana"/>
+        </div>
+        <div class="form-group">
+          <label>Land Size (acres)</label>
+          <input type="number" id="f_land" placeholder="e.g. 5" min="0.5" step="0.5"/>
+        </div>
+        <div class="form-group">
+          <label>Soil Type</label>
+          <select id="f_soil">
+            <option value="">Select...</option>
+            <option>Black Soil</option>
+            <option>Red Soil</option>
+            <option>Sandy Soil</option>
+            <option>Loamy Soil</option>
+            <option>Clay Soil</option>
+            <option>Alluvial Soil</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Season</label>
+          <select id="f_season">
+            <option value="">Select...</option>
+            <option>Kharif (Monsoon)</option>
+            <option>Rabi (Winter)</option>
+            <option>Zaid (Summer)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Irrigation Type</label>
+          <select id="f_irrigation">
+            <option value="">Select...</option>
+            <option>Rainfed</option>
+            <option>Canal</option>
+            <option>Drip</option>
+            <option>Sprinkler</option>
+            <option>Borewell</option>
+          </select>
+        </div>
+      </div>
+      <p class="error-msg" id="regError" style="display:none;"></p>
+      <button class="btn-primary" id="regBtn" onclick="handleRegister()">🚀 Get Smart Recommendations & Save</button>
+    </div>
+
+    <!-- Impact Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">👨‍🌾</div>
+        <div class="stat-num">12M+</div>
+        <div class="stat-label">Farmers Served</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-num">34%</div>
+        <div class="stat-label">Avg Profit Increase</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🌱</div>
+        <div class="stat-num">2.4M</div>
+        <div class="stat-label">Acres Optimized</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SAVED DASHBOARD ══════════ -->
+<div id="page-saved" class="page">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <h2 class="page-title">💾 Saved Farmer Profiles</h2>
+      <button onclick="clearAllSaved()" style="padding:7px 14px;background:#fff;border:1.5px solid var(--accent);color:var(--accent);border-radius:8px;font-family:serif;font-size:12px;cursor:pointer;">🗑️ Clear All</button>
+    </div>
+    <div id="savedDashboard"></div>
+  </div>
+</div>
+
+<!-- ══════════ CROPS ══════════ -->
+<div id="page-crops" class="page">
+  <div class="container">
+    <h2 class="page-title">🌱 AI Crop Recommendations</h2>
+    <div id="cropsContent">
+      <div class="card" style="text-align:center;color:var(--muted);">
+        <p>Please complete registration to get personalized recommendations.</p>
+        <button class="btn-primary" style="max-width:220px;" onclick="showTab('home')">Go to Registration →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ WEATHER ══════════ -->
+<div id="page-weather" class="page">
+  <div class="container">
+    <h2 class="page-title">🌦️ Weather Advisory</h2>
+
+    <div class="weather-grid">
+      <div class="weather-day today">
+        <div class="wd-label">Today</div>
+        <div class="wd-icon">⛅</div>
+        <div class="wd-temp">34°C</div>
+        <div class="wd-rain">💧 20%</div>
+      </div>
+      <div class="weather-day">
+        <div class="wd-label">Thu</div>
+        <div class="wd-icon">🌧️</div>
+        <div class="wd-temp">29°C</div>
+        <div class="wd-rain">💧 85%</div>
+      </div>
+      <div class="weather-day">
+        <div class="wd-label">Fri</div>
+        <div class="wd-icon">🌧️</div>
+        <div class="wd-temp">27°C</div>
+        <div class="wd-rain">💧 90%</div>
+      </div>
+      <div class="weather-day">
+        <div class="wd-label">Sat</div>
+        <div class="wd-icon">🌦️</div>
+        <div class="wd-temp">31°C</div>
+        <div class="wd-rain">💧 45%</div>
+      </div>
+      <div class="weather-day">
+        <div class="wd-label">Sun</div>
+        <div class="wd-icon">☀️</div>
+        <div class="wd-temp">36°C</div>
+        <div class="wd-rain">💧 5%</div>
+      </div>
+    </div>
+
+    <div class="banner banner-warn">
+      <strong>⚠️ Rain Alert (Thu–Fri)</strong><br>
+      Heavy rainfall expected. Avoid pesticide spraying. Ensure proper drainage. Harvest any ready crops before Thursday.
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Today's Farm Advisory</div>
+      <div class="advisory-list">
+        <div class="advisory-item"><span class="advisory-icon">🚫</span><span class="advisory-text">Do NOT spray pesticides — rain will wash them away (Thu–Fri)</span></div>
+        <div class="advisory-item"><span class="advisory-icon">💧</span><span class="advisory-text">Skip irrigation today — adequate soil moisture expected from incoming rain</span></div>
+        <div class="advisory-item"><span class="advisory-icon">🌾</span><span class="advisory-text">Ideal conditions for transplanting paddy seedlings after rain clears Saturday</span></div>
+        <div class="advisory-item"><span class="advisory-icon">🔍</span><span class="advisory-text">Watch for fungal diseases post-rainfall — inspect leaves every morning</span></div>
+        <div class="advisory-item"><span class="advisory-icon">📦</span><span class="advisory-text">Store harvested grain in a dry place before rain arrives Thursday</span></div>
+      </div>
+    </div>
+
+    <div class="mini-stats">
+      <div class="mini-stat">
+        <div class="ms-icon">💦</div>
+        <div class="ms-val">68%</div>
+        <div class="ms-label">Humidity</div>
+      </div>
+      <div class="mini-stat">
+        <div class="ms-icon">🌬️</div>
+        <div class="ms-val">12 km/h</div>
+        <div class="ms-label">Wind Speed</div>
+      </div>
+      <div class="mini-stat">
+        <div class="ms-icon">🌧️</div>
+        <div class="ms-val">20%</div>
+        <div class="ms-label">Rain Today</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MARKET ══════════ -->
+<div id="page-market" class="page">
+  <div class="container">
+    <h2 class="page-title">💰 Mandi Price Dashboard</h2>
+
+    <div class="banner banner-soil">
+      📅 Prices as of today · Source: Agmarknet / Sample Data · Updated 6:00 AM
+    </div>
+
+    <div id="marketList"></div>
+
+    <div class="card" style="background:var(--leaf-pale);">
+      <div style="font-family:'Playfair Display',serif;color:var(--leaf);font-size:15px;margin-bottom:8px;">🏆 Best Price Today</div>
+      <p style="font-size:13px;color:var(--dark);">
+        <strong>Turmeric</strong> is fetching the highest price at <strong>₹12,400/quintal</strong> in Nizamabad Mandi.
+        If you have turmeric in stock, consider selling in the next 2–3 days as prices are trending upward (+5.8%).
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PROFIT ══════════ -->
+<div id="page-profit" class="page">
+  <div class="container">
+    <h2 class="page-title">📊 Profit Estimator</h2>
+
+    <div class="card">
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Select Crop</label>
+          <select id="p_crop" onchange="calcProfit()">
+            <option>Rice</option>
+            <option>Wheat</option>
+            <option>Cotton</option>
+            <option>Maize</option>
+            <option>Soybean</option>
+            <option>Turmeric</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Land (acres)</label>
+          <input type="number" id="p_land" value="2" min="0.5" step="0.5" oninput="calcProfit()"/>
+        </div>
+      </div>
+
+      <div class="profit-grid">
+        <div class="profit-stat" style="border-left:3px solid var(--leaf);">
+          <div class="ps-label">Production</div>
+          <div class="ps-val" id="r_production" style="color:var(--leaf);">-</div>
+        </div>
+        <div class="profit-stat" style="border-left:3px solid var(--gold);">
+          <div class="ps-label">Revenue</div>
+          <div class="ps-val" id="r_revenue" style="color:var(--gold);">-</div>
+        </div>
+        <div class="profit-stat" style="border-left:3px solid var(--accent);">
+          <div class="ps-label">Input Cost</div>
+          <div class="ps-val" id="r_cost" style="color:var(--accent);">-</div>
+        </div>
+        <div class="profit-stat" style="border-left:3px solid var(--leaf-light);">
+          <div class="ps-label">Net Profit</div>
+          <div class="ps-val" id="r_profit">-</div>
+        </div>
+      </div>
+
+      <div class="profit-summary">
+        ROI: <strong id="r_roi" style="color:var(--leaf);">-</strong>
+        &nbsp;·&nbsp;
+        Breakeven: <strong id="r_breakeven">-</strong>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📈 Cost Breakdown Guide</div>
+      <div class="cost-breakdown">
+        <div class="cb-item"><div class="cb-dot" style="background:var(--leaf)"></div><div class="cb-name">Seeds &amp; Planting</div><div class="cb-pct" style="color:var(--leaf)">15%</div><div class="cb-bar-bg"><div class="cb-bar" style="width:15%;background:var(--leaf)"></div></div></div>
+        <div class="cb-item"><div class="cb-dot" style="background:var(--gold)"></div><div class="cb-name">Fertilizers</div><div class="cb-pct" style="color:var(--gold)">25%</div><div class="cb-bar-bg"><div class="cb-bar" style="width:25%;background:var(--gold)"></div></div></div>
+        <div class="cb-item"><div class="cb-dot" style="background:var(--accent)"></div><div class="cb-name">Pesticides</div><div class="cb-pct" style="color:var(--accent)">10%</div><div class="cb-bar-bg"><div class="cb-bar" style="width:10%;background:var(--accent)"></div></div></div>
+        <div class="cb-item"><div class="cb-dot" style="background:var(--sky)"></div><div class="cb-name">Labour</div><div class="cb-pct" style="color:#48cae4">30%</div><div class="cb-bar-bg"><div class="cb-bar" style="width:30%;background:var(--sky)"></div></div></div>
+        <div class="cb-item"><div class="cb-dot" style="background:#4895ef"></div><div class="cb-name">Irrigation</div><div class="cb-pct" style="color:#4895ef">12%</div><div class="cb-bar-bg"><div class="cb-bar" style="width:12%;background:#4895ef"></div></div></div>
+        <div class="cb-item"><div class="cb-dot" style="background:var(--muted)"></div><div class="cb-name">Misc / Transport</div><div class="cb-pct" style="color:var(--muted)">8%</div><div class="cb-bar-bg"><div class="cb-bar" style="width:8%;background:var(--muted)"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CHAT ══════════ -->
+<div id="page-chat" class="page">
+  <div class="container">
+    <h2 class="page-title">🤖 AI Farm Advisor</h2>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="chat-header">💬 Ask about crops, diseases, soil, weather, market prices, govt schemes...</div>
+      <div class="chat-body" id="chatBody"></div>
+      <div class="chat-footer">
+        <input class="chat-input" id="chatInput" placeholder="e.g. Why are my cotton leaves turning yellow?" onkeydown="if(event.key==='Enter')sendChat()"/>
+        <button class="chat-send" id="chatSendBtn" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="setChat('Best fertilizer for black soil?')">Best fertilizer for black soil?</button>
+      <button class="quick-btn" onclick="setChat('PM-KISAN scheme details')">PM-KISAN scheme details</button>
+      <button class="quick-btn" onclick="setChat('Pest control for cotton')">Pest control for cotton</button>
+      <button class="quick-btn" onclick="setChat('When to harvest rice?')">When to harvest rice?</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast">✅ Farmer profile saved!</div>
+
+<!-- Detail Modal -->
+<div id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div id="modalBox">
+    <div class="modal-header" id="modalHead">
+      <div>
+        <div style="color:var(--gold);font-family:'Playfair Display',serif;font-size:20px;font-weight:700;" id="modalTitle"></div>
+        <div style="color:#b7e4c7;font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:3px;" id="modalMeta"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<footer>🌾 AgriSmart · Empowering India's farming families with AI · Hackathon MVP</footer>
+
+<script>
+// ═══ State ═══════════════════════════════════════════════════════
+let farmer = {};
+let isRegistered = false;
+let chatHistory = [];
+
+// ═══ Tab Navigation ══════════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  const labels = ['home','saved','crops','weather','market','profit','chat'];
+  const idx = labels.indexOf(name);
+  if (idx >= 0) btns[idx]?.classList.add('active');
+  if (name === 'saved') renderSavedDashboard();
+}
+
+// ═══ Registration ═════════════════════════════════════════════════
+function handleRegister() {
+  const name = document.getElementById('f_name').value.trim();
+  const location = document.getElementById('f_location').value.trim();
+  const land = document.getElementById('f_land').value.trim();
+  const soil = document.getElementById('f_soil').value;
+  const season = document.getElementById('f_season').value;
+  const irrigation = document.getElementById('f_irrigation').value;
+  const errEl = document.getElementById('regError');
+
+  if (!name || !location || !land || !soil || !season || !irrigation) {
+    errEl.textContent = '⚠️ Please fill all fields.';
+    errEl.style.display = 'block'; return;
+  }
+  errEl.style.display = 'none';
+  farmer = { name, location, land, soil, season, irrigation };
+
+  const btn = document.getElementById('regBtn');
+  btn.disabled = true;
+  btn.textContent = '🌱 Analyzing your farm...';
+
+  setTimeout(() => {
+    const advice = getCropAdvice(farmer);
+    isRegistered = true;
+
+    // Save to localStorage
+    const record = {
+      id: Date.now(),
+      savedAt: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+      farmer: { ...farmer },
+      advice
+    };
+    const saved = getSavedFarmers();
+    saved.unshift(record); // newest first
+    localStorage.setItem('agrismart_farmers', JSON.stringify(saved));
+
+    // Load the saved record into active view (crops/profit/chat)
+    renderCropRecommendations(advice);
+    document.getElementById('p_land').value = parseFloat(land) || 2;
+    calcProfit();
+    initChat();
+
+    // Update badge
+    updateSavedBadge();
+
+    // Show toast
+    showToast('✅ ' + name + '\'s profile saved!');
+
+    // Reset form to fresh state
+    resetForm();
+
+    btn.disabled = false;
+    btn.textContent = '🚀 Get Smart Recommendations & Save';
+
+    // Navigate to crops
+    showTab('crops');
+  }, 800);
+}
+
+function resetForm() {
+  document.getElementById('f_name').value = '';
+  document.getElementById('f_location').value = '';
+  document.getElementById('f_land').value = '';
+  document.getElementById('f_soil').value = '';
+  document.getElementById('f_season').value = '';
+  document.getElementById('f_irrigation').value = '';
+  document.getElementById('regError').style.display = 'none';
+}
+
+// ═══ localStorage helpers ═════════════════════════════════════════
+function getSavedFarmers() {
+  try { return JSON.parse(localStorage.getItem('agrismart_farmers') || '[]'); }
+  catch { return []; }
+}
+
+function updateSavedBadge() {
+  const n = getSavedFarmers().length;
+  const badge = document.getElementById('savedBadge');
+  if (n > 0) { badge.textContent = n; badge.style.display = 'inline'; }
+  else { badge.style.display = 'none'; }
+}
+
+// ═══ Toast ════════════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══ RULE-BASED CROP ADVISORY ENGINE ═════════════════════════════
+// Full offline crop knowledge base for Indian farming conditions
+const CROP_DB = {
+  // [soil][season] → array of crop objects
+  "Black Soil": {
+    "Kharif (Monsoon)": [
+      { crop:"Cotton",  emoji:"🌸", yield:"8–12 quintals/acre",   profit:"₹35,000–50,000/acre",
+        reason:"Black soil (Regur) retains moisture exceptionally well, providing cotton with the prolonged water supply it needs during Kharif. Cotton is the signature crop of black soil regions across Maharashtra, MP and Telangana.",
+        tips:["Use Bt Cotton hybrid seeds for higher yield and pest resistance","Apply 40kg N, 20kg P, 20kg K per acre at sowing","Watch for bollworm infestation — spray neem-based pesticide at flowering"] },
+      { crop:"Soybean", emoji:"🫘", yield:"10–14 quintals/acre",  profit:"₹22,000–32,000/acre",
+        reason:"Soybean fixes nitrogen naturally in black soil, improving long-term soil health. The monsoon rainfall pattern perfectly matches soybean's water requirements during pod filling.",
+        tips:["Use Rhizobium seed inoculant before sowing to boost nitrogen fixation","Sow at 45×10 cm spacing for optimal canopy","Spray foliar urea (2%) at flowering stage for better pod set"] },
+      { crop:"Tur Dal", emoji:"🌿", yield:"6–8 quintals/acre",    profit:"₹18,000–26,000/acre",
+        reason:"Tur (pigeon pea) thrives in the deep black soil's water-holding capacity and tolerates short dry spells. Kharif sowing allows full utilization of monsoon moisture.",
+        tips:["Sow early June for best yield — don't delay beyond July 15","Use wilt-resistant variety like ICPL-87 or Maruti","Intercrop with soybean 1:2 ratio to maximize land use"] }
+    ],
+    "Rabi (Winter)": [
+      { crop:"Wheat",    emoji:"🌾", yield:"18–24 quintals/acre",  profit:"₹28,000–40,000/acre",
+        reason:"Black soil's high water retention suits wheat's moderate irrigation needs in Rabi season. Cooler temperatures enhance grain filling and protein content significantly.",
+        tips:["Sow between Nov 1–20 for best yield — avoid late sowing","Apply first irrigation at Crown Root Initiation (21 days after sowing)","Use HD-2967 or GW-322 variety suited for central India black soil"] },
+      { crop:"Gram (Chickpea)", emoji:"🟡", yield:"8–12 quintals/acre", profit:"₹20,000–30,000/acre",
+        reason:"Chickpea is well-adapted to black soils and requires minimal irrigation, making it ideal for Rabi in rainfed black soil areas. High MSP ensures good returns.",
+        tips:["Use Desi variety JG-11 or Phule G-0524 for black soil","Treat seeds with Trichoderma to prevent wilt","Apply only one light irrigation at flowering if rainfall is absent"] },
+      { crop:"Safflower", emoji:"🌼", yield:"6–9 quintals/acre",   profit:"₹15,000–22,000/acre",
+        reason:"Safflower is a drought-tolerant Rabi oilseed crop perfectly suited for deep black soils. It can extract moisture from great depth, reducing irrigation dependency.",
+        tips:["Sow in October for best oil content","Deep black soil needs no irrigation if Kharif rainfall was adequate","Harvest when 75% of heads turn brown"] }
+    ],
+    "Zaid (Summer)": [
+      { crop:"Sunflower",  emoji:"🌻", yield:"8–10 quintals/acre",  profit:"₹18,000–26,000/acre",
+        reason:"Sunflower is a short-duration summer crop that utilizes residual moisture in black soil. High-value oilseed crop with assured market demand.",
+        tips:["Sow in February for March–May harvest","Requires only 3–4 irrigations — ideal for borewell users","Hand-pollinate or maintain beehives nearby for better seed set"] },
+      { crop:"Moong Dal", emoji:"🌱", yield:"4–6 quintals/acre",    profit:"₹14,000–20,000/acre",
+        reason:"Short-duration (60–65 days) moong can be grown as a summer catch crop in black soil, adding nitrogen for the next Kharif season.",
+        tips:["Use Pusa Vishal or KM-2241 variety for summer","5–6 irrigations needed — use drip for water efficiency","Harvest in 2–3 pickings for green pods or let dry for dal"] },
+      { crop:"Watermelon", emoji:"🍉", yield:"80–120 quintals/acre", profit:"₹30,000–50,000/acre",
+        reason:"Watermelon fetches high summer prices and black soil's moisture retention reduces irrigation frequency. Good cash crop near urban centers.",
+        tips:["Grow on raised beds with black plastic mulch","Use drip irrigation for best fruit quality","Harvest when the tendril near fruit turns brown and dry"] }
+    ]
+  },
+  "Red Soil": {
+    "Kharif (Monsoon)": [
+      { crop:"Groundnut", emoji:"🥜", yield:"10–16 quintals/acre",  profit:"₹25,000–40,000/acre",
+        reason:"Red soils are well-drained and loose — ideal for groundnut's underground pod development. Andhra Pradesh, Karnataka and Tamil Nadu dominate groundnut production in red soil areas.",
+        tips:["Use Kadiri-6 or TAG-24 variety for Kharif red soil","Gypsum application (200 kg/acre) at pegging stage is essential","Avoid waterlogging — ensure field drainage before monsoon"] },
+      { crop:"Ragi (Finger Millet)", emoji:"🌾", yield:"8–12 quintals/acre", profit:"₹16,000–24,000/acre",
+        reason:"Ragi is the most climate-resilient crop for red soils, tolerating both drought and poor fertility. It's a nutritious cereal with growing market demand.",
+        tips:["Transplant method gives 20–30% higher yield than direct seeding","Apply FYM 4 tonnes/acre before sowing","Highly drought-tolerant — ideal for rainfed red soil areas"] },
+      { crop:"Maize",    emoji:"🌽", yield:"20–28 quintals/acre",   profit:"₹24,000–36,000/acre",
+        reason:"Red soils with good drainage prevent waterlogging around maize roots. Kharif maize benefits from monsoon moisture while maintaining the aeration maize needs.",
+        tips:["Use hybrid seeds like DEKALB 9144 or Pioneer 3396","Apply zinc sulphate (10 kg/acre) — red soils are often zinc deficient","Intercrop with soybean to maximize profitability"] }
+    ],
+    "Rabi (Winter)": [
+      { crop:"Wheat",    emoji:"🌾", yield:"14–20 quintals/acre",   profit:"₹22,000–32,000/acre",
+        reason:"Red soils need slightly more irrigation for wheat than black soils, but good drainage prevents waterlogging at the root zone. GW varieties perform well.",
+        tips:["Apply more organic matter — red soils are lower in fertility","Irrigate 5–6 times at critical stages","Use Lok-1 or K-307 variety suited for red soil regions"] },
+      { crop:"Linseed",  emoji:"🌼", yield:"5–7 quintals/acre",     profit:"₹14,000–20,000/acre",
+        reason:"Linseed (alsi) is an ideal Rabi oilseed for red soils with low water requirement. Growing market for linseed oil and omega-3 rich seeds.",
+        tips:["Sow in last week of October to mid-November","Only 2 irrigations required (pre-sowing + flowering)","Intercrop with coriander for additional income"] },
+      { crop:"Mustard",  emoji:"🌿", yield:"8–12 quintals/acre",    profit:"₹18,000–26,000/acre",
+        reason:"Mustard adapts well to red soils in Rabi and is a short-duration crop (110–120 days). High oil content varieties fetch good market prices.",
+        tips:["Sow in October — cooler temperatures improve oil content","Apply sulphur (20 kg/acre) — critical for mustard","One light irrigation at branching stage is sufficient"] }
+    ],
+    "Zaid (Summer)": [
+      { crop:"Sesame",   emoji:"🌿", yield:"3–5 quintals/acre",     profit:"₹12,000–20,000/acre",
+        reason:"Sesame is a heat-tolerant summer crop perfectly suited for red soils. Short duration (75–85 days) and high value oilseed with export demand.",
+        tips:["Sow after March 15 when soil temperature rises above 25°C","Thin to 10 cm spacing after emergence","Harvest when lower capsules begin to turn yellow-brown"] },
+      { crop:"Cowpea",   emoji:"🫘", yield:"5–8 quintals/acre",     profit:"₹12,000–18,000/acre",
+        reason:"Cowpea is an excellent summer legume for red soils, fixing nitrogen and improving soil structure for the next crop.",
+        tips:["Dual purpose — harvest pods for vegetable market for extra income","Requires only 3–4 irrigations","Can be used as green manure if market prices are low"] },
+      { crop:"Cucumber", emoji:"🥒", yield:"60–90 quintals/acre",   profit:"₹25,000–40,000/acre",
+        reason:"Cucumber is a high-value summer vegetable that performs excellently in well-drained red soils. Strong demand in local markets during summer months.",
+        tips:["Train on bamboo stakes or trellis for better yield","Drip irrigation with fertigation gives best results","Harvest every alternate day to maintain quality and encourage new fruits"] }
+    ]
+  },
+  "Sandy Soil": {
+    "Kharif (Monsoon)": [
+      { crop:"Pearl Millet (Bajra)", emoji:"🌾", yield:"8–12 quintals/acre", profit:"₹14,000–20,000/acre",
+        reason:"Bajra is specifically adapted to sandy soils — its drought tolerance and short root system work perfectly with sandy soil's rapid drainage. Rajasthan and Gujarat's staple Kharif crop.",
+        tips:["Use hybrid HHB-67 Improved for sandy soil","Needs very little water — excess irrigation causes lodging","Thin to 15 cm spacing within rows after 2 weeks"] },
+      { crop:"Moth Bean",  emoji:"🫘", yield:"4–7 quintals/acre",   profit:"₹12,000–18,000/acre",
+        reason:"Moth bean is arguably the most drought-tolerant legume in India — sandy soils are its ideal habitat. It fixes nitrogen improving soil quality significantly.",
+        tips:["No irrigation needed if Kharif rainfall is normal","Excellent for marginal sandy land — low input, decent output","Harvest pods in 2–3 pickings for maximum yield"] },
+      { crop:"Cluster Bean (Guar)", emoji:"🌿", yield:"6–10 quintals/acre", profit:"₹15,000–24,000/acre",
+        reason:"Guar is the crop of choice for sandy soils in arid regions. Guar gum has strong industrial and export demand, ensuring reliable market access.",
+        tips:["Use RGC-936 or HG-563 variety for sandy soil","Sow 2–3 weeks after monsoon onset","Very drought tolerant — ideal for areas with less than 400mm rainfall"] }
+    ],
+    "Rabi (Winter)": [
+      { crop:"Mustard",  emoji:"🌿", yield:"7–10 quintals/acre",    profit:"₹16,000–24,000/acre",
+        reason:"Mustard's extensive root system helps it access nutrients in sandy soil. Short duration and low water requirement make it the best Rabi choice for sandy conditions.",
+        tips:["Apply FYM 5 tonnes/acre to compensate sandy soil's low fertility","2–3 irrigations sufficient — sandy soil drains fast so irrigate more frequently in smaller amounts","Varuna or Pusa Bold variety recommended"] },
+      { crop:"Coriander", emoji:"🌱", yield:"6–10 quintals/acre",   profit:"₹20,000–32,000/acre",
+        reason:"Coriander does well in loose, well-drained sandy soils and is a high-value spice crop. Rajasthan is the largest coriander producer using sandy soils.",
+        tips:["Split seeds and soak overnight for better germination","Irrigate every 8–10 days — sandy soil dries quickly","Harvest seeds when 50% of umbels turn brown"] },
+      { crop:"Garlic",   emoji:"🧄", yield:"25–35 quintals/acre",   profit:"₹35,000–60,000/acre",
+        reason:"Garlic requires loose, well-drained soil for bulb development — sandy soil is ideal. High market value makes it one of the most profitable Rabi crops.",
+        tips:["Plant cloves 5–7 cm deep at 10×15 cm spacing","Irrigate every 7–8 days — sandy soil needs frequent light irrigation","Stop irrigation 3 weeks before harvest for better keeping quality"] }
+    ],
+    "Zaid (Summer)": [
+      { crop:"Watermelon", emoji:"🍉", yield:"100–160 quintals/acre", profit:"₹40,000–70,000/acre",
+        reason:"Sandy soils are the BEST for watermelon — warm soil temperature and excellent drainage produce sweet, high-quality fruits. River sandy soils are premium watermelon land.",
+        tips:["Grow on raised sand beds with drip irrigation","Use sugar baby or Arka Manik variety for best quality","Cover with dry grass mulch to retain soil moisture"] },
+      { crop:"Muskmelon",  emoji:"🍈", yield:"60–100 quintals/acre", profit:"₹25,000–45,000/acre",
+        reason:"Like watermelon, muskmelon thrives in warm sandy soils. Summer scarcity pushes prices high, making this an excellent cash crop.",
+        tips:["Direct seed or transplant at 2×1 m spacing","Requires 5–7 drip irrigations throughout the crop","Harvest when skin starts to net and fruit separates easily from vine"] },
+      { crop:"Groundnut", emoji:"🥜", yield:"8–12 quintals/acre",   profit:"₹18,000–28,000/acre",
+        reason:"Summer groundnut in sandy soil takes advantage of warm temperatures for oil accumulation. Sandy soil allows easy pod harvesting with minimal damage.",
+        tips:["Irrigate every 5–7 days — sandy soil dries quickly","Apply gypsum at pegging for good pod filling","Harvest when inner shell shows dark marks"] }
+    ]
+  },
+  "Loamy Soil": {
+    "Kharif (Monsoon)": [
+      { crop:"Rice",    emoji:"🌾", yield:"20–28 quintals/acre",    profit:"₹28,000–42,000/acre",
+        reason:"Loamy soil is considered ideal for rice cultivation — it holds enough water while allowing good root development. Most of India's major rice growing states have loamy or clay-loam soils.",
+        tips:["Transplant 25-day-old seedlings for best results","Maintain 5 cm water depth during vegetative stage","Use Swarna (MTU-7029) or IR-64 variety for high yield"] },
+      { crop:"Maize",   emoji:"🌽", yield:"24–32 quintals/acre",    profit:"₹28,000–42,000/acre",
+        reason:"Loamy soil is the perfect medium for maize — excellent aeration, good moisture retention and high fertility supports maize's heavy nutrient demand during Kharif.",
+        tips:["Apply 120:60:40 kg NPK per hectare for hybrid varieties","Earth up soil around plants at 30 days to prevent lodging","Use drip fertigation for 20–30% higher yield"] },
+      { crop:"Sugarcane", emoji:"🎋", yield:"300–400 quintals/acre", profit:"₹40,000–60,000/acre",
+        reason:"Loamy soil provides the perfect balance of aeration and moisture for sugarcane's 12-month growth cycle. High sugar content and guaranteed FRP pricing make it highly profitable.",
+        tips:["Plant ratoon crop for 2–3 years to reduce establishment cost","Use drip irrigation to save 30–40% water","Apply trash mulch after harvest to conserve moisture"] }
+    ],
+    "Rabi (Winter)": [
+      { crop:"Wheat",   emoji:"🌾", yield:"22–30 quintals/acre",    profit:"₹34,000–48,000/acre",
+        reason:"Loamy soil is the premium soil for wheat in India — the IGP (Indo-Gangetic Plain) belt with loamy soils produces the majority of India's wheat. Excellent yields are achievable.",
+        tips:["Sow HD-2967 or PBW-343 for north India loamy soils","6 irrigations at critical stages — CRI, tillering, jointing, flowering, grain filling, dough","Apply 150 kg urea in 3 splits for maximum yield"] },
+      { crop:"Potato",  emoji:"🥔", yield:"80–120 quintals/acre",   profit:"₹40,000–70,000/acre",
+        reason:"Loamy soil's friable texture is ideal for tuber expansion. Good drainage prevents tuber rots while moisture retention supports consistent growth.",
+        tips:["Use certified seed from Shimla or Agra for disease-free crop","Apply well-rotted FYM 10 tonnes/acre before planting","Hill up soil when plants are 20 cm tall for better tuber development"] },
+      { crop:"Mustard", emoji:"🌿", yield:"10–14 quintals/acre",    profit:"₹22,000–32,000/acre",
+        reason:"Mustard in loamy soil achieves maximum oil content and seed weight. The balanced nutrition of loamy soil produces high-quality mustard seeds.",
+        tips:["Sow in October — winter temperature improves oil content","Apply boron (1 kg/acre) — essential for seed set in mustard","Timely harvesting critical — thresh when plants turn yellow"] }
+    ],
+    "Zaid (Summer)": [
+      { crop:"Vegetables (Mixed)", emoji:"🥬", yield:"Varied",       profit:"₹35,000–60,000/acre",
+        reason:"Loamy soil is the most versatile soil for vegetable cultivation. Summer vegetables like bottle gourd, bitter gourd, and okra thrive in loamy soil with irrigation.",
+        tips:["Grow bottle gourd, bitter gourd, ridge gourd on trellis","Use drip irrigation — reduces disease and saves water","Stagger planting every 15 days for continuous market supply"] },
+      { crop:"Sunflower", emoji:"🌻", yield:"10–14 quintals/acre",  profit:"₹22,000–32,000/acre",
+        reason:"Sunflower's deep taproot benefits from loamy soil's depth and fertility. Short duration (90–95 days) fits perfectly in Zaid between Rabi and Kharif.",
+        tips:["Sow in February for best yield","Maintain bee hives for pollination — increases yield by 15%","Harvest when back of head turns brown-yellow"] },
+      { crop:"Mung Bean", emoji:"🌱", yield:"5–8 quintals/acre",    profit:"₹16,000–24,000/acre",
+        reason:"Short-duration mung (60–65 days) fits as a summer catch crop in loamy soil. It adds nitrogen for the subsequent Kharif crop.",
+        tips:["Pusa Vishal or SML-668 variety for summer","5–6 irrigations needed","Harvest in 2–3 pickings — don't let all pods dry on plant"] }
+    ]
+  },
+  "Clay Soil": {
+    "Kharif (Monsoon)": [
+      { crop:"Rice",     emoji:"🌾", yield:"22–30 quintals/acre",   profit:"₹30,000–44,000/acre",
+        reason:"Clay soil is rice's natural habitat — its water impermeability reduces seepage losses and maintains the flooded conditions rice requires during Kharif.",
+        tips:["Puddle soil thoroughly before transplanting to seal water loss","Use Swarna Sub1 variety for areas prone to flooding","Apply split doses of urea — clay soil can also cause nitrogen loss through denitrification"] },
+      { crop:"Jute",     emoji:"🌿", yield:"20–25 quintals/acre",   profit:"₹18,000–28,000/acre",
+        reason:"Clay soil in high-rainfall areas is excellent for jute cultivation. The crop benefits from clay soil's moisture retention during the initial growth phase.",
+        tips:["Sow in April–May before early monsoon","Retting quality improves with river water over stagnant pond water","JRC-212 or JRO-524 are high-yielding varieties"] },
+      { crop:"Taro (Arbi)", emoji:"🥜", yield:"40–60 quintals/acre", profit:"₹20,000–35,000/acre",
+        reason:"Taro thrives in waterlogged clay soil conditions that most crops cannot tolerate. High demand in local markets as a nutritious vegetable.",
+        tips:["Plant in April–May using small corms","Clay soil retains moisture well — reduce irrigation frequency","Harvest when lower leaves start yellowing (6–8 months)"] }
+    ],
+    "Rabi (Winter)": [
+      { crop:"Wheat",    emoji:"🌾", yield:"18–25 quintals/acre",   profit:"₹26,000–38,000/acre",
+        reason:"Clay soil holds adequate moisture for wheat's Rabi needs but requires good drainage. Deep tillage before sowing is essential to break hardpan.",
+        tips:["Deep plow (30 cm) before Rabi to break the hardpan layer","Ensure good drainage — wheat does not tolerate waterlogging","Apply gypsum if soil is sticky — improves structure over seasons"] },
+      { crop:"Lentil (Masur)", emoji:"🫘", yield:"6–9 quintals/acre", profit:"₹16,000–24,000/acre",
+        reason:"Lentil tolerates heavier soils better than other pulses. Clay soil retains the residual Kharif moisture that lentil needs for good establishment without irrigation.",
+        tips:["Sow in October–November after Kharif harvest","Usually no irrigation needed — residual moisture is sufficient","PL-406 or K-75 variety is suited for heavy soils"] },
+      { crop:"Mustard",  emoji:"🌿", yield:"8–11 quintals/acre",    profit:"₹18,000–26,000/acre",
+        reason:"Mustard grows well in clay soil in Rabi — the moisture retained from Kharif supports good crop establishment.",
+        tips:["Raise beds before sowing to avoid waterlogging","Apply lime if pH is below 6.5 — clay soils can be acidic","Only 1–2 irrigations needed"] }
+    ],
+    "Zaid (Summer)": [
+      { crop:"Okra (Bhindi)", emoji:"🌿", yield:"40–60 quintals/acre", profit:"₹30,000–50,000/acre",
+        reason:"Okra handles clay soil well in summer with good drainage. High summer prices and continuous harvest over 2–3 months make it a very profitable cash crop.",
+        tips:["Raise beds to 15 cm height for better drainage in clay soil","Harvest every 2 days — pods become fibrous very quickly","Parbhani Kranti or Arka Anamika variety for best results"] },
+      { crop:"Sponge Gourd", emoji:"🥒", yield:"50–80 quintals/acre",  profit:"₹22,000–36,000/acre",
+        reason:"Clay soil's moisture retention reduces irrigation needs for summer gourds. Strong market demand across India for this nutritious vegetable.",
+        tips:["Grow on strong trellis — clay soil supports strong vine growth","Mulch around base to prevent clay soil from cracking","Harvest young fruits before seeds harden"] },
+      { crop:"Turmeric",   emoji:"💛", yield:"20–28 quintals/acre",   profit:"₹40,000–65,000/acre",
+        reason:"Turmeric prefers heavy clay loam soils with good organic matter. It is a high-value spice with consistent market prices and can be stored for selling at better price.",
+        tips:["Plant rhizomes in April–May using 20–25 gm seed pieces","Apply 10 tonnes FYM/acre before planting — crucial for good rhizome development","Harvest after 8–9 months when leaves turn yellow"] }
+    ]
+  },
+  "Alluvial Soil": {
+    "Kharif (Monsoon)": [
+      { crop:"Rice",     emoji:"🌾", yield:"25–35 quintals/acre",   profit:"₹35,000–52,000/acre",
+        reason:"Alluvial soil of the Indo-Gangetic Plain is the most fertile soil in India — it is specifically why this belt produces the majority of India's rice. Excellent mineral content and water holding capacity.",
+        tips:["Use high-yielding varieties like Pusa Basmati-1121 for premium price","SRI (System of Rice Intensification) method can increase yield by 20–25%","Apply zinc sulphate 25 kg/acre — alluvial soils can be zinc deficient"] },
+      { crop:"Sugarcane", emoji:"🎋", yield:"350–500 quintals/acre", profit:"₹50,000–80,000/acre",
+        reason:"Alluvial soil's deep fertile profile and good water table support sugarcane's 12-month high-nutrient demand. UP's alluvial belt is the largest sugarcane region in India.",
+        tips:["Plant in February (spring) or October (autumn) planting for best results","Use drip irrigation — saves 40% water and increases sugar recovery","Apply 250 kg nitrogen per hectare in 4–5 splits"] },
+      { crop:"Maize",    emoji:"🌽", yield:"28–36 quintals/acre",   profit:"₹32,000–48,000/acre",
+        reason:"Alluvial soil's nutrient richness and excellent drainage make it India's premium maize-growing soil. Bihar's alluvial belt produces high-quality Kharif maize.",
+        tips:["Use Pioneer 3396 or DEKALB 9144 hybrid seeds","Ensure adequate zinc — alluvial soils can be zinc deficient","Inter-cropping with black-eyed peas adds income and nitrogen"] }
+    ],
+    "Rabi (Winter)": [
+      { crop:"Wheat",   emoji:"🌾", yield:"28–38 quintals/acre",    profit:"₹42,000–60,000/acre",
+        reason:"Alluvial soil + Rabi wheat is India's most productive combination. The IGP belt on alluvial soil is responsible for India's wheat self-sufficiency.",
+        tips:["Use DBW-187 or HD-3086 for record yields in alluvial soil","Apply 6 irrigations starting at CRI (21 DAS)","Laser land leveling saves 25% irrigation water — highly recommended"] },
+      { crop:"Potato",  emoji:"🥔", yield:"100–160 quintals/acre",  profit:"₹55,000–90,000/acre",
+        reason:"India's major potato-growing belt (UP, Punjab) has alluvial soil — its friability, depth and high fertility are ideal for maximum tuber development.",
+        tips:["Use Kufri Jyoti or Kufri Pukhraj variety for alluvial belt","Apply 250 kg NPK mixture per acre for high-yield potato","Cold storage access is key — plan logistics before harvesting"] },
+      { crop:"Mustard", emoji:"🌿", yield:"12–16 quintals/acre",    profit:"₹26,000–38,000/acre",
+        reason:"Alluvial soil in the Rabi season produces India's best mustard — Rajasthan-UP alluvial belt leads national production with premium oil content seeds.",
+        tips:["Pusa Bold or Varuna variety recommended for alluvial soil","Apply sulphur 20 kg/acre — critical for oil content","Seed treatment with thiram prevents seed-borne diseases"] }
+    ],
+    "Zaid (Summer)": [
+      { crop:"Vegetables (Mixed)", emoji:"🥬", yield:"Varied",       profit:"₹45,000–80,000/acre",
+        reason:"Alluvial soil near urban centers is highly suited for protected and open vegetable cultivation in summer. Proximity to markets multiplies profitability.",
+        tips:["Focus on tomato, capsicum, cucumber for best summer prices","Use net house or shade net to reduce heat stress","Drip irrigation + fertigation maximizes yield and quality"] },
+      { crop:"Mung Bean", emoji:"🌱", yield:"6–9 quintals/acre",    profit:"₹18,000–28,000/acre",
+        reason:"Mung bean fits perfectly as a summer Zaid crop in alluvial soil, utilizing residual moisture and fixing nitrogen for the next Kharif season.",
+        tips:["Sow in March for May–June harvest","Pusa Vishal or Samrat variety for summer Zaid","Harvest in 3 pickings — first at 55 days, then every 7–10 days"] },
+      { crop:"Watermelon", emoji:"🍉", yield:"120–200 quintals/acre", profit:"₹50,000–90,000/acre",
+        reason:"Alluvial sandy loam river banks are premier watermelon land in India. Summer prices are high and alluvial soil's warmth produces very sweet fruits.",
+        tips:["River bed (diara) cultivation is traditional and very productive","Use drip irrigation on raised beds with black plastic mulch","Kiran or Sugar Baby variety for large sweet fruits"] }
+    ]
+  }
+};
+
+// Weather & soil advice by season and soil
+const WEATHER_ADVICE = {
+  "Kharif (Monsoon)": "Monsoon season — monitor rainfall regularly and ensure drainage channels are clear to prevent waterlogging in low-lying fields.",
+  "Rabi (Winter)": "Winter season — protect crops from cold waves and frost; irrigate 2–3 days before expected frost to protect crop roots.",
+  "Zaid (Summer)": "Summer season — irrigate in the early morning or evening to reduce evaporation losses; watch for heat stress symptoms in crops."
+};
+const SOIL_ADVICE = {
+  "Black Soil":    "Black soil (Vertisol) cracks when dry — maintain adequate moisture and apply lime if pH falls below 6.5 for optimal crop growth.",
+  "Red Soil":      "Red soil is low in nitrogen and phosphorus — apply compost or green manure regularly and use phosphorus-rich fertilizers.",
+  "Sandy Soil":    "Sandy soil drains very fast — apply FYM or compost 5 tonnes/acre every season to improve water and nutrient retention.",
+  "Loamy Soil":    "Loamy soil is ideal — maintain its quality by adding organic matter yearly and avoiding over-irrigation that leads to nutrient leaching.",
+  "Clay Soil":     "Clay soil needs good drainage and deep tillage — avoid working when wet to prevent compaction and structural damage.",
+  "Alluvial Soil": "Alluvial soil is highly fertile — maintain organic matter with crop residue incorporation and rotate crops to prevent nutrient depletion."
+};
+
+// Irrigation adjustments
+function getIrrigationNote(irrigation) {
+  const notes = {
+    "Rainfed":    "Since you are rainfed, choose drought-tolerant varieties and practice mulching to conserve soil moisture.",
+    "Canal":      "Canal irrigation — stagger sowing dates to make best use of available water rotation schedule in your area.",
+    "Drip":       "With drip irrigation, you can use fertigation to increase yield by 20–30% with lower input costs — ideal for cash crops.",
+    "Sprinkler":  "Sprinkler irrigation is ideal for uneven terrain — irrigate in the morning to reduce fungal disease risk.",
+    "Borewell":   "Borewell irrigation gives control over water timing — measure borewell output and plan crop water requirement accordingly."
+  };
+  return notes[irrigation] || "";
+}
+
+function getCropAdvice(f) {
+  const soil = f.soil;
+  const season = f.season;
+  const land = parseFloat(f.land) || 2;
+  const irrigNote = getIrrigationNote(f.irrigation);
+
+  let recs = (CROP_DB[soil] && CROP_DB[soil][season]) ? CROP_DB[soil][season] : null;
+
+  // Fallback if combination not found
+  if (!recs) {
+    recs = [
+      { crop:"Rice",     emoji:"🌾", yield:"18–24 qtl/acre", profit:"₹26,000–38,000/acre",
+        reason:"Rice is a versatile crop that can adapt to various soil and seasonal conditions across India.",
+        tips:["Transplant at 3–4 leaf stage","Maintain 5 cm water level during vegetative growth","Use weed control at 20 and 40 days after transplanting"] },
+      { crop:"Maize",    emoji:"🌽", yield:"20–26 qtl/acre", profit:"₹22,000–32,000/acre",
+        reason:"Maize is adaptable to diverse soil types and seasons, making it a reliable choice across most Indian farming conditions.",
+        tips:["Use hybrid seeds for best yield","Apply full dose of phosphorus and potassium at sowing","Earth up at 30 days to prevent stem lodging"] },
+      { crop:"Mustard",  emoji:"🌿", yield:"8–12 qtl/acre",  profit:"₹18,000–26,000/acre",
+        reason:"Mustard is a short-duration oilseed crop with low water requirement that fits in most soil types and cropping systems.",
+        tips:["Timely sowing is critical for good yield","Apply sulphur fertilizer for better oil content","2–3 irrigations are sufficient for the crop"] }
+    ];
+  }
+
+  // Add irrigation tip to first crop's tips
+  if (irrigNote) recs[0].tips.push(irrigNote);
+
+  const profitSummary = `With ${land} acres of ${soil}, focusing on the top recommended crop could generate a net income of ₹${Math.round(land * 28000).toLocaleString()}–₹${Math.round(land * 48000).toLocaleString()} this ${season.split(' ')[0]} season, depending on market prices and input management.`;
+
+  return {
+    recommendations: recs,
+    weatherAdvice: WEATHER_ADVICE[season] || "Monitor local weather conditions and plan farm activities accordingly.",
+    soilAdvice: SOIL_ADVICE[soil] || "Maintain soil health with regular organic matter addition and crop rotation.",
+    profitSummary
+  };
+}
+
+// ═══ Saved Dashboard ═════════════════════════════════════════════
+function renderSavedDashboard() {
+  const saved = getSavedFarmers();
+  const container = document.getElementById('savedDashboard');
+  if (saved.length === 0) {
+    container.innerHTML = `
+      <div class="saved-empty">
+        <div class="se-icon">🌾</div>
+        <p>No farmer profiles saved yet.</p>
+        <p style="margin-top:6px;font-size:12px;">Fill the registration form to save your first profile!</p>
+        <button class="btn-primary" style="max-width:220px;margin-top:14px;" onclick="showTab('home')">➕ Add Farmer →</button>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = saved.map(rec => {
+    const recs = rec.advice.recommendations || [];
+    const chipsHtml = recs.map(r => `
+      <div class="saved-crop-chip">
+        <span class="scc-emoji">${r.emoji}</span>
+        <div>
+          <div class="scc-name">${r.crop}</div>
+          <div class="scc-profit">${r.profit}</div>
+        </div>
+      </div>`).join('');
+    return `
+    <div class="saved-card" id="card-${rec.id}">
+      <div class="saved-card-header">
+        <div>
+          <div class="sch-name">👤 ${rec.farmer.name}</div>
+          <div class="sch-meta">📍 ${rec.farmer.location} · ${rec.farmer.land} acres</div>
+        </div>
+        <div class="sch-date">${rec.savedAt}</div>
+      </div>
+      <div class="saved-card-body">
+        <div class="saved-tags">
+          <span class="saved-tag tag-soil">🟤 ${rec.farmer.soil}</span>
+          <span class="saved-tag tag-season">📅 ${rec.farmer.season.split(' ')[0]}</span>
+          <span class="saved-tag tag-irr">💧 ${rec.farmer.irrigation}</span>
+          <span class="saved-tag tag-land">🌾 ${rec.farmer.land} acres</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;">Top Crop Picks</div>
+        <div class="saved-crops-row">${chipsHtml}</div>
+        <div style="font-size:12px;color:var(--muted);font-style:italic;border-top:1px solid var(--border);padding-top:10px;">${rec.advice.profitSummary || ''}</div>
+      </div>
+      <div class="saved-card-actions">
+        <button class="btn-view" onclick="viewRecord(${rec.id})">🔍 View Full Report</button>
+        <button class="btn-del" onclick="deleteRecord(${rec.id})">🗑️ Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteRecord(id) {
+  const saved = getSavedFarmers().filter(r => r.id !== id);
+  localStorage.setItem('agrismart_farmers', JSON.stringify(saved));
+  updateSavedBadge();
+  renderSavedDashboard();
+  showToast('🗑️ Profile deleted');
+}
+
+function clearAllSaved() {
+  if (!confirm('Delete all saved farmer profiles? This cannot be undone.')) return;
+  localStorage.removeItem('agrismart_farmers');
+  updateSavedBadge();
+  renderSavedDashboard();
+  showToast('🗑️ All profiles cleared');
+}
+
+// ═══ Detail Modal ═════════════════════════════════════════════════
+function viewRecord(id) {
+  const rec = getSavedFarmers().find(r => r.id === id);
+  if (!rec) return;
+  const f = rec.farmer;
+  const a = rec.advice;
+  const BADGE_COLORS = ['#2d6a4f','#e9a824','#e76f51'];
+  const labels = ['#1 Pick','#2 Pick','#3 Pick'];
+
+  document.getElementById('modalTitle').textContent = '👤 ' + f.name;
+  document.getElementById('modalMeta').textContent = `📍 ${f.location} · ${f.land} acres · Saved ${rec.savedAt}`;
+
+  let html = `
+    <div class="saved-tags" style="margin-bottom:14px;">
+      <span class="saved-tag tag-soil">🟤 ${f.soil}</span>
+      <span class="saved-tag tag-season">📅 ${f.season}</span>
+      <span class="saved-tag tag-irr">💧 ${f.irrigation}</span>
+      <span class="saved-tag tag-land">🌾 ${f.land} acres</span>
+    </div>
+    <div class="banner banner-sky" style="margin-bottom:10px;">🌦️ ${a.weatherAdvice}</div>
+    <div class="banner banner-soil" style="margin-bottom:14px;">🟤 ${a.soilAdvice}</div>
+  `;
+
+  (a.recommendations || []).forEach((rec2, i) => {
+    html += `
+    <div class="card crop-card" style="border-left:5px solid ${BADGE_COLORS[i]};margin-bottom:12px;">
+      <div class="crop-header">
+        <span class="crop-emoji">${rec2.emoji}</span>
+        <span class="crop-name">${rec2.crop}</span>
+        <span class="crop-badge" style="background:${BADGE_COLORS[i]}">${labels[i]}</span>
+      </div>
+      <p class="crop-reason">${rec2.reason}</p>
+      <div class="crop-stats">
+        <div class="crop-stat">
+          <div class="cs-label">Expected Yield</div>
+          <div class="cs-value" style="color:var(--leaf)">${rec2.yield}</div>
+        </div>
+        <div class="crop-stat">
+          <div class="cs-label">Est. Profit</div>
+          <div class="cs-value" style="color:var(--gold)">${rec2.profit}</div>
+        </div>
+      </div>
+      <div class="crop-tips">
+        <div class="tips-title">Pro Tips</div>
+        ${rec2.tips.map(t => `<div class="tip-item">✅ ${t}</div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  html += `<p style="font-size:13px;color:var(--muted);font-style:italic;margin-top:6px;">${a.profitSummary}</p>`;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// ═══ Crop Recommendations ═════════════════════════════════════════
+const BADGE_COLORS = ['#2d6a4f','#e9a824','#e76f51'];
+function renderCropRecommendations(advice) {
+  const labels = ['#1 Pick','#2 Pick','#3 Pick'];
+  let html = `
+    <div class="banner banner-sky" style="margin-bottom:12px;">🌦️ ${advice.weatherAdvice}</div>
+    <div class="banner banner-soil" style="margin-bottom:12px;">🟤 ${advice.soilAdvice}</div>
+  `;
+  advice.recommendations.forEach((rec, i) => {
+    html += `
+    <div class="card crop-card" style="border-left-color:${BADGE_COLORS[i]};margin-bottom:14px;">
+      <div class="crop-header">
+        <span class="crop-emoji">${rec.emoji}</span>
+        <span class="crop-name">${rec.crop}</span>
+        <span class="crop-badge" style="background:${BADGE_COLORS[i]}">${labels[i]}</span>
+      </div>
+      <p class="crop-reason">${rec.reason}</p>
+      <div class="crop-stats">
+        <div class="crop-stat">
+          <div class="cs-label">Expected Yield</div>
+          <div class="cs-value" style="color:var(--leaf)">${rec.yield}</div>
+        </div>
+        <div class="crop-stat">
+          <div class="cs-label">Est. Profit</div>
+          <div class="cs-value" style="color:var(--gold)">${rec.profit}</div>
+        </div>
+      </div>
+      <div class="crop-tips">
+        <div class="tips-title">Pro Tips</div>
+        ${rec.tips.map(t => `<div class="tip-item">✅ ${t}</div>`).join('')}
+      </div>
+    </div>`;
+  });
+  document.getElementById('cropsContent').innerHTML = html;
+}
+
+// ═══ Market Data ══════════════════════════════════════════════════
+const MARKET = [
+  { crop:'Rice',     icon:'🌾', price:2183,  change:+2.1, unit:'₹/quintal', district:'Warangal' },
+  { crop:'Wheat',    icon:'🌿', price:2275,  change:-0.8, unit:'₹/quintal', district:'Karimnagar' },
+  { crop:'Cotton',   icon:'🌸', price:7120,  change:+3.4, unit:'₹/quintal', district:'Adilabad' },
+  { crop:'Maize',    icon:'🌽', price:1890,  change:+1.2, unit:'₹/quintal', district:'Nizamabad' },
+  { crop:'Soybean',  icon:'🫘', price:4650,  change:-1.5, unit:'₹/quintal', district:'Nalgonda' },
+  { crop:'Turmeric', icon:'💛', price:12400, change:+5.8, unit:'₹/quintal', district:'Nizamabad' },
+];
+
+function makeSVGSparkline(data, color) {
+  const w=80, h=30;
+  const mn=Math.min(...data), mx=Math.max(...data);
+  const pts = data.map((v,i) => {
+    const x=(i/(data.length-1))*w;
+    const y=h-((v-mn)/(mx-mn||1))*h;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function renderMarket() {
+  const list = document.getElementById('marketList');
+  list.innerHTML = MARKET.map((m, i) => {
+    const base = m.price;
+    const trend = [0,1,2,3,4].map(j => base - 80 + j*20 + (m.change > 0 ? j*15 : -j*10));
+    const color = m.change > 0 ? '#40916c' : '#e76f51';
+    const arrow = m.change > 0 ? '▲' : '▼';
+    return `
+    <div class="market-row" style="margin-bottom:10px;">
+      <div class="mr-icon">${m.icon}</div>
+      <div class="mr-info">
+        <div class="mr-crop">${m.crop}</div>
+        <div class="mr-loc">📍 ${m.district} Mandi</div>
+      </div>
+      <div class="mr-price">
+        <div class="mr-amount">${m.price.toLocaleString()}</div>
+        <div class="mr-unit">${m.unit}</div>
+        <div class="mr-change ${m.change > 0 ? 'up' : 'down'}">${arrow} ${Math.abs(m.change)}%</div>
+      </div>
+      <div class="sparkline-wrap">
+        ${makeSVGSparkline(trend, color)}
+        <div class="sp-label">5-day</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ Profit Calculator ════════════════════════════════════════════
+const CROPS_DATA = {
+  Rice:     { yield:20, price:21.83, cost:18000 },
+  Wheat:    { yield:18, price:22.75, cost:15000 },
+  Cotton:   { yield:8,  price:71.20, cost:25000 },
+  Maize:    { yield:25, price:18.90, cost:14000 },
+  Soybean:  { yield:10, price:46.50, cost:20000 },
+  Turmeric: { yield:25, price:124,   cost:45000 },
+};
+
+function calcProfit() {
+  const crop = document.getElementById('p_crop').value;
+  const area = parseFloat(document.getElementById('p_land').value) || 1;
+  const c = CROPS_DATA[crop];
+  const production = (c.yield * area).toFixed(1);
+  const revenue = Math.round(c.yield * area * c.price * 100);
+  const totalCost = Math.round(c.cost * area);
+  const profit = revenue - totalCost;
+  const roi = ((profit / totalCost) * 100).toFixed(1);
+  const breakeven = Math.ceil(c.cost / (c.yield * c.price * 100 / area));
+
+  document.getElementById('r_production').textContent = production + ' qtl';
+  document.getElementById('r_revenue').textContent = '₹' + revenue.toLocaleString();
+  document.getElementById('r_cost').textContent = '₹' + totalCost.toLocaleString();
+  const profEl = document.getElementById('r_profit');
+  profEl.textContent = '₹' + profit.toLocaleString();
+  profEl.style.color = profit >= 0 ? '#40916c' : '#e63946';
+  document.getElementById('r_roi').textContent = roi + '%';
+  document.getElementById('r_roi').style.color = roi >= 0 ? '#2d6a4f' : '#e63946';
+  document.getElementById('r_breakeven').textContent = breakeven + ' ac';
+}
+
+// ═══ Chat ═════════════════════════════════════════════════════════
+function initChat() {
+  chatHistory = [];
+  addBubble('bot', "👋 Namaste! I'm your AgriSmart advisor. Ask me anything about crops, soil, pests, or farming best practices!\n" +
+    (isRegistered ? `\nI can see you have ${farmer.land} acres of ${farmer.soil} in ${farmer.location}. How can I help? 🌱` : ''));
+}
+
+function addBubble(role, text) {
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'chat-bubble ' + (role === 'bot' ? 'bubble-bot' : 'bubble-user');
+  // Render **bold** markers and newlines
+  div.innerHTML = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function addTyping() {
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'chat-bubble bubble-bot typing-dots';
+  div.id = 'typingDots';
+  div.innerHTML = '<span>•</span><span>•</span><span>•</span>';
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function removeTyping() {
+  document.getElementById('typingDots')?.remove();
+}
+
+function setChat(text) { document.getElementById('chatInput').value = text; }
+
+// ═══ Smart Offline Chat Knowledge Base ═══════════════════════════
+const CHAT_KB = [
+  { keys:['fertilizer','urea','npk','nitrogen','phosphorus','potassium','manure','compost'],
+    answer:`🌿 **Fertilizer Guide for Indian Farmers:**
+
+• **Urea (46% N):** Apply in 2–3 splits — never all at once. Best applied before rain or irrigation.
+• **DAP (18-46-0):** Best basal fertilizer — apply at sowing time in furrow.
+• **MOP (60% K):** Apply for root crops, sugarcane, and potato for quality improvement.
+• **FYM/Compost:** Apply 4–5 tonnes/acre every season — improves soil structure long-term.
+• **Micronutrients:** Zinc deficiency is very common in India — apply zinc sulphate 10 kg/acre if leaves show yellowing between veins.
+
+💡 Tip: Always do a soil test before applying fertilizers to avoid over-application and save money!` },
+
+  { keys:['pest','insect','bollworm','whitefly','aphid','thrips','caterpillar','bug','worm'],
+    answer:`🐛 **Pest Control for Indian Crops:**
+
+• **Integrated Pest Management (IPM)** is best — don't rely only on chemicals.
+• **Neem-based sprays** (neem oil 3% or neem cake) work for sucking pests like aphids, whitefly, and thrips.
+• **Yellow sticky traps** at 10 per acre catch whiteflies and aphids early.
+• **Bollworm in cotton:** Spray Chlorpyrifos 20EC @ 2.5 ml/litre at first sign of infestation.
+• **Early morning scouting** helps detect pest outbreaks before they spread.
+
+⚠️ Never spray during flowering — it kills pollinators and reduces yield!` },
+
+  { keys:['disease','fungal','blight','rust','wilt','rot','leaf spot','powdery mildew'],
+    answer:`🍂 **Crop Disease Management:**
+
+• **Fungal diseases** are most common in humid, rainy conditions — improve drainage and air circulation.
+• **Seed treatment** with Thiram or Carbendazim (2g/kg seed) prevents most seed-borne diseases.
+• **Powdery mildew:** Spray wettable sulphur (3g/litre) or Carbendazim (1g/litre).
+• **Leaf blight (rice/wheat):** Spray Tricyclazole or Propiconazole at disease onset.
+• **Wilt (pulses/cotton):** Use Trichoderma viride soil application — biological control that works!
+
+🌱 Prevention > Cure: Crop rotation breaks disease cycles naturally!` },
+
+  { keys:['water','irrigation','drip','flood','spray','sprinkler','moisture'],
+    answer:`💧 **Smart Irrigation Tips:**
+
+• **Drip irrigation** saves 40–50% water vs flood irrigation — ideal for vegetables, cotton, sugarcane.
+• **Critical irrigation stages:**
+  - Wheat: CRI (21 days), tillering, jointing, flowering, grain filling
+  - Rice: Transplanting, tillering, flowering, grain filling
+  - Cotton: Squaring, flowering, boll development
+• **Irrigate early morning** (5–8 AM) to reduce evaporation losses by 30%.
+• **Soil moisture check:** Insert finger 5 cm deep — if dry, it's time to irrigate.
+
+💡 PM Krishi Sinchai Yojana subsidizes drip installation — check with your district agriculture office!` },
+
+  { keys:['harvest','when to harvest','harvesting','cutting','threshing','storage'],
+    answer:`🌾 **Harvesting & Storage Guide:**
+
+• **Wheat:** Harvest when grain moisture is 20–25% (machine harvest) or when fully golden (manual).
+• **Rice:** Harvest at 20–25% grain moisture — don't wait for full drying on plant.
+• **Cotton:** Pick when bolls are fully open — 2–3 pickings for maximum quality.
+• **Pulses:** Harvest when 75–80% pods turn brown/yellow.
+• **Storage:** Dry grain to 12–14% moisture before storage to prevent mold.
+• **Metal bins** or HDPE bags better than gunny bags for long-term storage.
+
+⚠️ Moisture at storage is the #1 cause of grain losses — always check before storing!` },
+
+  { keys:['pm kisan','scheme','government','subsidy','loan','kcc','crop insurance','pmfby'],
+    answer:`🏛️ **Key Government Schemes for Farmers:**
+
+• **PM-KISAN:** ₹6,000/year in 3 installments directly to farmer bank accounts — register at pmkisan.gov.in
+• **PM Fasal Bima Yojana (PMFBY):** Crop insurance at very low premium (2% for Kharif, 1.5% for Rabi) — enroll through bank or CSC center.
+• **Kisan Credit Card (KCC):** Low-interest crop loans up to ₹3 lakh at 4–7% — apply at any nationalized bank.
+• **PM Krishi Sinchai Yojana:** Subsidy on drip/sprinkler irrigation systems — up to 90% for small farmers.
+• **Soil Health Card:** Free soil testing from Krishi Vigyan Kendra — helps save fertilizer costs.
+
+📞 Call 1800-180-1551 (Kisan Call Centre) for free expert advice!` },
+
+  { keys:['black soil','red soil','sandy soil','loamy soil','clay soil','alluvial soil','soil type','soil health','soil test'],
+    answer:`🟤 **Soil Health & Management:**
+
+• **Black Soil:** Deep, fertile, moisture-retaining. Best for cotton, soybean. Add lime if pH < 6.5.
+• **Red Soil:** Well-drained but low fertility. Add organic matter every season. Good for groundnut, ragi.
+• **Sandy Soil:** Fast-draining. Add compost 5T/acre. Great for watermelon, garlic, muskmelon.
+• **Loamy Soil:** Best all-purpose soil! Maintain with yearly organic addition. Ideal for wheat, potato, vegetables.
+• **Clay Soil:** Heavy, waterlogging risk. Deep tillage before sowing. Good for rice.
+• **Alluvial Soil:** Most fertile in India — IGP belt. Maintain with crop rotation.
+
+🔬 Get a free soil test at your nearest Krishi Vigyan Kendra every 3 years!` },
+
+  { keys:['cotton','yellow','leaf','curl','bollworm'],
+    answer:`🌸 **Cotton Leaf Yellowing — Diagnosis & Fix:**
+
+Yellow leaves in cotton can be caused by several issues:
+• **Nitrogen deficiency:** Yellowing starts from older (lower) leaves → Apply urea 15 kg/acre as foliar spray.
+• **Magnesium deficiency:** Yellow between veins, veins stay green → Spray MgSO4 (1%) solution.
+• **Whitefly/virus (Leaf Curl):** Curling + yellowing of young leaves → Spray Imidacloprid 0.5 ml/litre.
+• **Waterlogging:** Uniform yellowing after heavy rain → Improve drainage immediately.
+• **Iron deficiency:** Young leaves yellow first → Spray ferrous sulphate (0.5%) with lime.
+
+📸 Take a photo and visit your nearest Krishi Vigyan Kendra for accurate diagnosis!` },
+
+  { keys:['rice','paddy','transplant','nursery','seedling'],
+    answer:`🌾 **Rice Cultivation Guide:**
+
+• **Nursery:** Sow seeds in nursery 25–30 days before transplanting. Use 20 kg seed/acre.
+• **Transplanting:** Transplant 2–3 seedlings per hill at 20×15 cm spacing.
+• **SRI Method:** Single seedling at 25×25 cm spacing — can increase yield by 20–30%!
+• **Water management:** 5 cm water during vegetative stage; drain at panicle initiation to encourage roots.
+• **Fertilizer:** 80:40:40 NPK kg/hectare — apply N in 3 splits (basal, tillering, panicle initiation).
+• **Weed control:** Manual weeding or Bispyribac-Na (Nominee Gold) herbicide at 15–20 DAS.
+
+🌱 Harvest when 80–85% of grains are golden yellow.` },
+
+  { keys:['market','price','sell','mandi','trade','profit','income','money'],
+    answer:`💰 **Getting Best Market Price:**
+
+• **eNAM (National Agriculture Market):** Sell online at higher prices — register at enam.gov.in
+• **FPO (Farmer Producer Organizations):** Join or form an FPO for bulk selling leverage — better prices guaranteed.
+• **Agmarknet:** Check daily mandi prices at agmarknet.gov.in before deciding where to sell.
+• **Direct selling:** Farmer markets (Rythu Bazars/Apni Mandi) cut middlemen — typically 15–25% better price.
+• **Grading & packaging:** Clean, graded produce fetches 10–20% premium in any market.
+• **Timing:** Prices are typically lowest at harvest — store for 1–2 months if you can.
+
+📱 Download the Kisan Suvidha app for real-time mandi prices in your district!` },
+];
+
+function getOfflineReply(msg) {
+  const lower = msg.toLowerCase();
+  // Check farmer-specific context
+  if (isRegistered) {
+    if (lower.includes('my crop') || lower.includes('recommend') || lower.includes('what should i grow') || lower.includes('which crop')) {
+      const advice = getCropAdvice(farmer);
+      const top = advice.recommendations[0];
+      return `🌱 Based on your **${farmer.soil}** and **${farmer.season}** season, my top recommendation for you is:\n\n**${top.emoji} ${top.crop}**\n${top.reason}\n\n📊 Expected yield: ${top.yield}\n💰 Est. profit: ${top.profit}\n\n✅ ${top.tips.join('\n✅ ')}\n\nCheck the 🌱 Crops tab for all 3 recommendations!`;
+    }
+    if (lower.includes('profit') && (lower.includes('my') || lower.includes('farm') || lower.includes('land'))) {
+      const land = parseFloat(farmer.land) || 2;
+      return `📊 For your **${land} acre** farm with **${farmer.soil}**:\n\n• Conservative estimate: ₹${Math.round(land * 22000).toLocaleString()} – ₹${Math.round(land * 32000).toLocaleString()}/season\n• Good year estimate: ₹${Math.round(land * 35000).toLocaleString()} – ₹${Math.round(land * 55000).toLocaleString()}/season\n\nKey to maximizing profit:\n✅ Use recommended crop for your soil type\n✅ Apply fertilizers as per soil test\n✅ Sell through eNAM or FPO for best price\n\nCheck the 📊 Profit tab for a detailed crop-wise calculation!`;
+    }
+  }
+  // Match knowledge base
+  for (const entry of CHAT_KB) {
+    if (entry.keys.some(k => lower.includes(k))) {
+      return entry.answer;
+    }
+  }
+  // Generic fallback
+  return `🌾 That's a good question! Here are some resources to help you:\n\n• 📞 **Kisan Call Centre:** Call 1800-180-1551 (free, 24/7) for expert agricultural advice in your local language.\n• 🏫 **Krishi Vigyan Kendra (KVK):** Visit your nearest KVK for hands-on guidance and free soil testing.\n• 📱 **Kisan Suvidha App:** Download from Play Store for weather, market prices, and crop advisory.\n• 🌐 **eNAM:** Visit enam.gov.in for online market price comparison.\n\nYou can also ask me about: fertilizers, pests, diseases, irrigation, harvesting, government schemes, or specific crops like rice, wheat, cotton! 🌱`;
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  addBubble('user', msg);
+  document.getElementById('chatSendBtn').disabled = true;
+  addTyping();
+
+  // Simulate thinking delay
+  setTimeout(() => {
+    removeTyping();
+    const reply = getOfflineReply(msg);
+    addBubble('bot', reply);
+    document.getElementById('chatSendBtn').disabled = false;
+  }, 600);
+}
+
+// ═══ Init ══════════════════════════════════════════════════════════
+renderMarket();
+calcProfit();
+initChat();
+updateSavedBadge();
+</script>
+</body>
+</html>
